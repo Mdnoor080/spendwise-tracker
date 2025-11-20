@@ -78,7 +78,7 @@ Option 1: Open the HTML file
 
 Download or clone the repo:
 
-git clone https://github.com/your-username/SpendWise.git
+git clone https://github.com/Mdnoor080/SpendWise.git
 
 Open index.html in your browser.
 
