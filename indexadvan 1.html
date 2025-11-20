@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Expense Tracker Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+/* Base Styling */
+* { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif; }
+
+:root {
+  --bg:#eef3f7;
+  --card:#ffffff;
+  --text:#1f1f1f;
+  --input:#f2f3f5;
+  --border:#b8c3ca;
+  --accent:#2f80ed;
+  --success:#2ecc71;
+  --danger:#e74c3c;
+}
+
+body.dark {
+  --bg:#0f0f0f;
+  --card:#1a1a1a;
+  --text:#ffffff;
+  --input:#2a2a2a;
+  --border:#666;
+}
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  padding:20px;
+  min-height:100vh;
+  transition:0.35s;
+}
+
+/* Floating Theme Toggle */
+.theme-toggle {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  border-radius:40px;
+  background:rgba(255,255,255,0.75);
+  backdrop-filter:blur(6px);
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  z-index:9999;
+  transition:0.3s;
+}
+body.dark .theme-toggle{ background:rgba(0,0,0,0.45); }
+
+.theme-toggle span {
+  font-size:19px;
+  transition:0.35s;
+}
+
+.switch { position:relative; width:42px; height:20px; }
+.switch input {
+  width:42px; height:20px; appearance:none;
+  background:#888; border-radius:20px;
+  cursor:pointer; transition:0.35s;
+}
+.switch input:checked { background:var(--accent); }
+.switch input::before {
+  content:""; width:16px; height:16px; background:white; border-radius:50%;
+  position:absolute; top:2px; left:2px; transition:0.35s;
+}
+.switch input:checked::before { transform:translateX(22px); }
+
+/* Main Container */
+.container {
+  max-width:550px;
+  margin:90px auto;
+  background:var(--card);
+  padding:25px;
+  border-radius:16px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.12);
+}
+
+h2 {
+  text-align:center;
+  font-size:26px;
+  color:#2a6f97;
+  margin-bottom:20px;
+}
+
+/* Summary */
+.summary-card {
+  background:#dff3ff;
+  padding:14px;
+  border-radius:12px;
+  margin-bottom:20px;
+}
+body.dark .summary-card { background:#17384a; }
+
+/* Labels + Inputs */
+label { font-weight:600; margin-top:10px; display:block; }
+input, select {
+  width:100%; padding:12px; margin-top:6px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--input);
+  color:var(--text);
+}
+button {
+  width:100%; padding:12px; margin-top:14px;
+  border:none; border-radius:10px;
+  background:var(--accent); color:white;
+  font-size:16px; font-weight:600;
+  cursor:pointer; transition:0.3s;
+}
+button:hover { filter:brightness(.9); }
+
+/* Transactions */
+.item {
+  background:var(--input);
+  padding:14px;
+  margin-bottom:12px;
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-left:6px solid;
+}
+.credit { border-color:var(--success); }
+.debit { border-color:var(--danger); }
+
+.actions { display:flex; gap:15px; }
+.icon {
+  font-size:20px; cursor:pointer;
+  transition:0.2s;
+}
+.icon:hover { transform:scale(1.2); }
+.delete { color:#ff4d4d; }
+.edit { color:#ffb84d; }
+
+/* Modal */
+.modal-bg {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.45);
+  display:none; align-items:center; justify-content:center;
+}
+.modal {
+  background:var(--card);
+  width:90%; max-width:360px;
+  padding:20px; border-radius:12px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.3);
+}
+.modal h3 {
+  color:#2a6f97;
+  margin-bottom:10px;
+}
+</style>
+</head>
+<body>
+
+<!-- THEME TOGGLE -->
+<div class="theme-toggle">
+  <span id="sunIcon">🌞</span>
+  <label class="switch">
+    <input type="checkbox" id="darkSwitch" onclick="toggleDarkMode()">
+  </label>
+  <span id="moonIcon">🌙</span>
+</div>
+
+<div class="container">
+
+<h2>Expense Tracker Pro</h2>
+
+<div class="summary-card">
+  <p><b>Total Credit:</b> ₹<span id="totalCredit">0</span></p>
+  <p><b>Total Debit:</b> ₹<span id="totalDebit">0</span></p>
+  <p><b>Balance:</b> ₹<span id="balance">0</span></p>
+</div>
+
+<label>Amount</label>
+<input type="number" id="amount">
+
+<label>Type</label>
+<select id="type">
+  <option value="Credit">Credit</option>
+  <option value="Debit">Debit</option>
+</select>
+
+<label>Category</label>
+<select id="category" onchange="checkOther()">
+  <option>Food</option>
+  <option>Travel</option>
+  <option>Bills</option>
+  <option>Shopping</option>
+  <option>Other</option>
+</select>
+
+<input type="text" id="customCategory" placeholder="Enter custom category" style="display:none">
+
+<button onclick="addTransaction()">Add Transaction</button>
+
+<h3 style="margin-top:20px; color:#2a6f97;">Transactions</h3>
+<div id="list"></div>
+
+</div>
+
+<!-- EDIT MODAL -->
+<div id="modalBg" class="modal-bg">
+  <div class="modal">
+    <h3>Edit Transaction</h3>
+
+    <label>Amount</label>
+    <input type="number" id="editAmount">
+
+    <label>Type</label>
+    <select id="editType">
+      <option value="Credit">Credit</option>
+      <option value="Debit">Debit</option>
+    </select>
+
+    <label>Category</label>
+    <select id="editCategory" onchange="editCheckOther()">
+      <option>Food</option>
+      <option>Travel</option>
+      <option>Bills</option>
+      <option>Shopping</option>
+      <option>Other</option>
+    </select>
+
+    <input type="text" id="editCustomCategory" placeholder="Custom category" style="display:none">
+
+    <button onclick="saveEdit()">Save</button>
+    <button style="background:#bbb; margin-top:8px;" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+let editIndex = null;
+
+/* SAVE DATA */
+function saveData(){
+  localStorage.setItem("transactions", JSON.stringify(transactions));
+}
+
+/* SHOW OR HIDE CUSTOM CATEGORY */
+function checkOther(){
+  document.getElementById("customCategory").style.display =
+    document.getElementById("category").value === "Other" ? "block" : "none";
+}
+
+function editCheckOther(){
+  document.getElementById("editCustomCategory").style.display =
+    document.getElementById("editCategory").value === "Other" ? "block" : "none";
+}
+
+/* ADD TRANSACTION */
+function addTransaction(){
+  let amount = Number(document.getElementById("amount").value);
+  let type = document.getElementById("type").value;
+  let category = document.getElementById("category").value;
+  let custom = document.getElementById("customCategory").value.trim();
+
+  if(!amount){ alert("Enter valid amount"); return; }
+
+  if(category === "Other"){
+    if(!custom){ alert("Enter custom category"); return; }
+    category = custom;
+  }
+
+  transactions.unshift({
+    amount, type, category,
+    date:new Date().toLocaleString()
+  });
+
+  saveData();
+  render();
+  document.getElementById("amount").value = "";
+  document.getElementById("customCategory").value = "";
+}
+
+/* DELETE TRANSACTION */
+function deleteTx(i){
+  transactions.splice(i,1);
+  saveData();
+  render();
+}
+
+/* OPEN EDIT MODAL */
+function openEdit(i){
+  editIndex = i;
+  let t = transactions[i];
+
+  document.getElementById("editAmount").value = t.amount;
+  document.getElementById("editType").value = t.type;
+
+  let defaults = ["Food","Travel","Bills","Shopping","Other"];
+  if(defaults.includes(t.category)){
+    document.getElementById("editCategory").value = t.category;
+    document.getElementById("editCustomCategory").style.display = t.category==="Other"?"block":"none";
+    document.getElementById("editCustomCategory").value = "";
+  } else {
+    document.getElementById("editCategory").value = "Other";
+    document.getElementById("editCustomCategory").style.display = "block";
+    document.getElementById("editCustomCategory").value = t.category;
+  }
+
+  document.getElementById("modalBg").style.display="flex";
+}
+
+/* CLOSE MODAL */
+function closeModal(){
+  document.getElementById("modalBg").style.display="none";
+}
+
+/* SAVE EDITED TX */
+function saveEdit(){
+  let amt = Number(document.getElementById("editAmount").value);
+  let type = document.getElementById("editType").value;
+  let cat = document.getElementById("editCategory").value;
+  let custom = document.getElementById("editCustomCategory").value.trim();
+
+  if(!amt){ alert("Enter amount"); return; }
+  if(cat==="Other" && !custom){ alert("Enter custom"); return; }
+
+  if(cat==="Other") cat = custom;
+
+  transactions[editIndex].amount = amt;
+  transactions[editIndex].type = type;
+  transactions[editIndex].category = cat;
+
+  saveData();
+  render();
+  closeModal();
+}
+
+/* RENDER LIST */
+function render(){
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+
+  let credit = 0, debit = 0;
+
+  transactions.forEach((t, i)=>{
+    if(t.type==="Credit") credit+=Number(t.amount);
+    else debit+=Number(t.amount);
+
+    list.innerHTML += `
+      <div class="item ${t.type.toLowerCase()}">
+        <div>
+          <b>${t.category}</b><br>
+          <small>${t.type} • ${t.date}</small>
+        </div>
+        <div class="actions">
+          <span class="icon edit" onclick="openEdit(${i})">✏️</span>
+          <span class="icon delete" onclick="deleteTx(${i})">🗑️</span>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("totalCredit").innerText = credit;
+  document.getElementById("totalDebit").innerText = debit;
+  document.getElementById("balance").innerText = credit - debit;
+}
+
+/* DARK MODE LOGIC */
+function toggleDarkMode(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem("darkMode", document.body.classList.contains("dark"));
+}
+
+if(localStorage.getItem("darkMode")==="true"){
+  document.body.classList.add("dark");
+  document.getElementById("darkSwitch").checked = true;
+}
+
+render();
+</script>
+
+</body>
+</html>
